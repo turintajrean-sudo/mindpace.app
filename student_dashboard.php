@@ -1,5 +1,5 @@
 <?php
-// student_dashboard.php
+
 session_start();
 require 'db_connect.php';
 
@@ -12,11 +12,9 @@ $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 $message = "";
 
-// ---------------------------------------------------------
-// FORM HANDLING: LOGGING DATA
-// ---------------------------------------------------------
 
-// 1. Log Study Session (BUG FIXES: SQL Injection prevention & Negative Time failsafe)
+
+// logging session of study
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['log_study'])) {
     $subj_id = (int)$_POST['subj_id'];
     $focus = (int)$_POST['focus'];
@@ -24,7 +22,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['log_study'])) {
     $end_time = $conn->real_escape_string($_POST['end_time']);
     $log_date = date("Y-m-d", strtotime($start_time));
 
-    // Data Integrity Check
     if (strtotime($start_time) >= strtotime($end_time)) {
         $message = "<div style='background: #fadbd8; padding: 10px; border-left: 5px solid #e74c3c; border-radius: 4px;'><p style='color: #c0392b; margin: 0;'><strong>⚠️ Validation Error:</strong> Your study session cannot end before it starts! Please check your dates.</p></div>";
     } else {
@@ -39,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['log_study'])) {
     }
 }
 
-// 2. Log Wellness (300-Level Algorithmic Readiness Scoring)
+//wellness log
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['log_wellness'])) {
     $sleep = (float)$_POST['sleep'];
     $stress = (int)$_POST['stress'];
@@ -84,7 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['log_wellness'])) {
     </div>";
 }
 
-// 3. Create a Study Group (BUG FIX: XSS vulnerability patched with htmlspecialchars)
+// study group creating
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_group'])) {
     $group_name = $conn->real_escape_string($_POST['group_name']);
     $joined_date = date("Y-m-d");
@@ -107,18 +104,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_group'])) {
     }
 }
 
-// ---------------------------------------------------------
-// DATA QUERIES
-// ---------------------------------------------------------
+
 
 $students_sql = "SELECT user_id, username FROM user WHERE user_type = 'student' AND user_id != $user_id";
 $students_result = $conn->query($students_sql);
 $subjects_result = $conn->query("SELECT subj_id, subj_name FROM subject");
 
-// FEATURE: MILESTONE APPRAISER (BUG FIX: Added ABS failsafe)
-$hours_sql = "SELECT SUM(ABS(TIMESTAMPDIFF(MINUTE, ss.start_time, ss.end_time)) / 60.0) AS total_hours 
-              FROM study_session ss JOIN activity_log al ON ss.log_id = al.log_id 
-              WHERE al.user_id = $user_id";
+// milestone appraiser
+
+$hours_sql = "select sum(abs(timestampdiff(minute, ss.start_time, ss.end_time)) / 60.0) as total_hours from study_session ss 
+     join activity_log al on ss.log_id = al.log_id where al.user_id = $user_id";
 $hours_result = $conn->query($hours_sql)->fetch_assoc();
 $total_hours = round($hours_result['total_hours'] ?? 0, 1);
 
@@ -128,50 +123,36 @@ elseif ($total_hours >= 10) { $badge_status = "🥈 Focused Learner Badge Earned
 elseif ($total_hours >= 5) { $badge_status = "🥉 Rising Star Badge Earned!"; }
 else { $badge_status = "Keep studying to unlock your first badge (5 hrs)!"; }
 
-// FEATURE 1: SMART PEER TUTOR MATCHING
+// smart peer tutoring
 $tutor_sql = "
-    SELECT DISTINCT u.username AS tutor_name, s.subj_name 
-    FROM study_session ss1
-    JOIN activity_log al1 ON ss1.log_id = al1.log_id
-    JOIN subject s ON ss1.subj_id = s.subj_id
-    JOIN study_session ss2 ON ss1.subj_id = ss2.subj_id
-    JOIN activity_log al2 ON ss2.log_id = al2.log_id
-    JOIN user u ON al2.user_id = u.user_id
-    WHERE al1.user_id = $user_id AND ss1.focus_rating <= 5
-      AND al2.user_id != $user_id AND ss2.focus_rating >= 8
+ select distinct u.username as tutor_name, s.subj_name from study_session ss1 
+ join activity_log al1 on ss1.log_id = al1.log_id
+ join subject s on ss1.subj_id = s.subj_id 
+ join study_session ss2 on ss1.subj_id = ss2.subj_id 
+ join activity_log al2 on ss2.log_id = al2.log_id 
+ join user u on al2.user_id = u.user_id 
+ where al1.user_id = $user_id and ss1.focus_rating <= 5 and al2.user_id != $user_id and ss2.focus_rating >= 8
 ";
 $tutor_result = $conn->query($tutor_sql);
 
-// FEATURE 2: HABIT IMPACT ANALYZER (Data prep for Chart.js)
+// habit impact analyzer 
+
 $habit_sql = "
-    SELECT 
-        al.log_date, 
-        wl.sleep_hours, 
-        wl.stress_level
-    FROM activity_log al
-    JOIN wellness_log wl ON al.log_id = wl.log_id
-    WHERE al.user_id = $user_id AND al.log_type = 'wellness'
-    ORDER BY al.log_date DESC, al.log_id DESC 
-    LIMIT 7
-";
+   select al.log_date, wl.sleep_hours, wl.stress_level from activity_log al 
+   join wellness_log wl on al.log_id = wl.log_id 
+   where al.user_id = $user_id and al.log_type = 'wellness' order by al.log_date desc, al.log_id desc limit 7";
 $habit_result = $conn->query($habit_sql);
 
-// FEATURE 5: STUDY GROUP MVP (BUG FIX: Cross-contamination fixed via study_group join, added ABS)
+// study group mvp
+
 $mvp_sql = "
-    SELECT 
-        sg.group_name,
-        u.username, 
-        SUM(ABS(TIMESTAMPDIFF(MINUTE, ss.start_time, ss.end_time)) / 60.0) AS group_hours
-    FROM user u
-    JOIN group_member gm ON u.user_id = gm.user_id
-    JOIN study_group sg ON gm.grp_id = sg.grp_id
-    JOIN activity_log al ON u.user_id = al.user_id
-    JOIN study_session ss ON al.log_id = ss.log_id
-    WHERE gm.grp_id IN (SELECT grp_id FROM group_member WHERE user_id = $user_id)
-      AND al.log_type = 'study'
-    GROUP BY sg.group_name, u.username
-    ORDER BY sg.group_name, group_hours DESC
-    LIMIT 10
+   select sg.group_name, u.username, sum(abs(timestampdiff(minute, ss.start_time, ss.end_time)) / 60.0) as group_hours from user u
+join group_member gm on u.user_id = gm.user_id
+join study_group sg on gm.grp_id = sg.grp_id
+join activity_log al on u.user_id = al.user_id
+join study_session ss on al.log_id = ss.log_id
+where gm.grp_id in (select grp_id from group_member where user_id = $user_id)
+and al.log_type = 'study' group by sg.group_name, u.username order by sg.group_name, group_hours desc limit 10
 ";
 $mvp_result = $conn->query($mvp_sql);
 ?>

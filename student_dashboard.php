@@ -367,48 +367,46 @@ $mvp_result = $conn->query($mvp_sql);
                 </span>
             </div>
 
-            <div class="card">
-                <h3>📋 Recent Wellness History</h3>
-                <p style="font-size: 0.9em; color: #555;">
-                    This table shows your last 7 wellness check-ins.
-                </p>
+           <div class="card">
+    <h3>📋 Recent Wellness History</h3>
+    <p style="font-size: 0.9em; color: #555;">
+        This table shows your last 7 wellness check-ins.
+    </p>
 
-                <table>
-                    <tr>
-                        <th>Date</th>
-                        <th>Sleep Hours</th>
-                        <th>Stress Level</th>
-                        <th>Mood Score</th>
-                        <th>Status</th>
-                    </tr>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Sleep Hours</th>
+            <th>Stress Level</th>
+            <th>Status</th>
+        </tr>
 
-                    <?php
-                    if ($habit_result && $habit_result->num_rows > 0) {
-                        while($row = $habit_result->fetch_assoc()) {
-                            $stress = (int)$row['stress_level'];
+        <?php
+        if ($habit_result && $habit_result->num_rows > 0) {
+            while($row = $habit_result->fetch_assoc()) {
+                $stress = (int)$row['stress_level'];
 
-                            if ($stress >= 8) {
-                                $status = "<span class='status-high'>High Risk</span>";
-                            } elseif ($stress >= 5) {
-                                $status = "<span class='status-medium'>Moderate</span>";
-                            } else {
-                                $status = "<span class='status-low'>Stable</span>";
-                            }
+                if ($stress >= 8) {
+                    $status = "<span class='status-high'>High Risk</span>";
+                } elseif ($stress >= 5) {
+                    $status = "<span class='status-medium'>Moderate</span>";
+                } else {
+                    $status = "<span class='status-low'>Stable</span>";
+                }
 
-                            echo "<tr>";
-                            echo "<td>" . htmlspecialchars($row['log_date']) . "</td>";
-                            echo "<td>" . htmlspecialchars($row['sleep_hours']) . " hrs</td>";
-                            echo "<td>" . htmlspecialchars($row['stress_level']) . " / 10</td>";
-                            echo "<td>" . htmlspecialchars($row['mood_score']) . " / 10</td>";
-                            echo "<td>" . $status . "</td>";
-                            echo "</tr>";
-                        }
-                    } else {
-                        echo "<tr><td colspan='5' style='text-align:center;'>No wellness records found yet.</td></tr>";
-                    }
-                    ?>
-                </table>
-            </div>
+                echo "<tr>";
+                echo "<td>" . htmlspecialchars($row['log_date']) . "</td>";
+                echo "<td>" . htmlspecialchars($row['sleep_hours']) . " hrs</td>";
+                echo "<td>" . htmlspecialchars($row['stress_level']) . " / 10</td>";
+                echo "<td>" . $status . "</td>";
+                echo "</tr>";
+            }
+        } else {
+            echo "<tr><td colspan='4' style='text-align:center;'>No wellness records found yet.</td></tr>";
+        }
+        ?>
+    </table>
+</div>
 
             <div class="card">
                 <h3>🤝 Recommended Peer Tutors</h3>

@@ -144,9 +144,15 @@ CREATE TABLE `subject` (
 -- Dumping data for table `subject`
 --
 
-INSERT INTO `subject` (`subj_id`, `subj_name`, `dept_id`) VALUES
+
+insert into subject (subj_id, subj_name, dept_id) values
 (1, 'Database Systems', 1),
-(2, 'Web Development', 1);
+(2, 'Web Development', 1),
+(3, 'Data Structures', 1),
+(4, 'Algorithms', 1),
+(5, 'Operating Systems', 1),
+(6, 'Computer Networks', 1),
+(7, 'Software Engineering', 1);
 
 -- --------------------------------------------------------
 

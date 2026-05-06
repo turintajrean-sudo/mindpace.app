@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['log_study'])) {
     }
 }
 
-//wellness log
+// wellness log
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['log_wellness'])) {
     $sleep = (float)$_POST['sleep'];
     $stress = (int)$_POST['stress'];
